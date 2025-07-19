@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Shooter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(180deg, #0a0a0a, #1a1a2e, #16213e);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 15px;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), transparent);
+        }
+
+        .score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .health {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .health-bar {
+            width: 30px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+            transition: width 0.3s ease;
+        }
+
+        .stamina {
+            margin-top: 8px;
+        }
+
+        .stamina-label {
+            font-size: 12px;
+            color: #ff8800;
+            margin-bottom: 3px;
+            text-shadow: 0 0 5px rgba(255, 136, 0, 0.5);
+        }
+
+        .stamina-bar {
+            width: 120px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #ff8800;
+        }
+
+        .stamina-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8800, #ffff00, #00ff00);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 136, 0, 0.6);
+        }
+
+        .stamina-ready {
+            animation: stamina-pulse 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes stamina-pulse {
+            from { box-shadow: 0 0 10px rgba(255, 136, 0, 0.6); }
+            to { box-shadow: 0 0 20px rgba(0, 255, 0, 1); }
+        }
+
+        .player {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.1s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        }
+
+        .bullet {
+            position: absolute;
+            width: 4px;
+            height: 12px;
+            background: linear-gradient(0deg, #ffff00, #ff8800);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.8);
+        }
+
+        .enemy {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(45deg, #ff0080, #8000ff);
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            box-shadow: 0 0 10px rgba(255, 0, 128, 0.6);
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #ffff00;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(255, 255, 0, 0.8);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #00ffff;
+            display: none;
+            z-index: 200;
+        }
+
+        .game-over h2 {
+            color: #ff0080;
+            margin-bottom: 15px;
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+        }
+
+        @keyframes stars {
+            0% { transform: translateY(-10px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(610px); opacity: 0; }
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: stars 3s linear infinite;
+        }
+
+        .special-wave {
+            position: absolute;
+            width: 400px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            animation: special-attack 1s ease-out;
+        }
+
+        @keyframes special-attack {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        .screen-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+            pointer-events: none;
+            animation: flash 0.5s ease-out;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <div class="ui-overlay">
+            <div class="score">スコア: <span id="score">0</span></div>
+            <div class="health">
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill"></div>
+                </div>
+            </div>
+            <div class="stamina">
+                <div class="stamina-label">スペシャル</div>
+                <div class="stamina-bar">
+                    <div class="stamina-fill" id="staminaFill"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="player" id="player"></div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>ゲームオーバー</h2>
+            <p>最終スコア: <span id="finalScore">0</span></p>
+            <button class="restart-btn" onclick="restartGame()">もう一度プレイ</button>
+        </div>
+        
+        <div class="instructions">
+            矢印キー: 移動 | スペース: 射撃 | Enter: スペシャル攻撃
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const player = document.getElementById('player');
+        const scoreElement = document.getElementById('score');
+        const healthFill = document.getElementById('healthFill');
+        const staminaFill = document.getElementById('staminaFill');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        let gameState = {
+            playerX: 180,
+            playerHealth: 100,
+            score: 0,
+            stamina: 0,
+            maxStamina: 100,
+            bullets: [],
+            enemies: [],
+            particles: [],
+            gameRunning: true,
+            keys: {},
+            specialAttackActive: false,
+            specialAttackDuration: 0
+        };
+
+        // キー入力の管理
+        document.addEventListener('keydown', (e) => {
+            gameState.keys[e.code] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.keys[e.code] = false;
+        });
+
+        // 星の背景エフェクト
+        function createStars() {
+            if (Math.random() < 0.3) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 400 + 'px';
+                star.style.top = '-10px';
+                gameContainer.appendChild(star);
+                
+                setTimeout(() => {
+                    if (star.parentNode) {
+                        star.parentNode.removeChild(star);
+                    }
+                }, 3000);
+            }
+        }
+
+        // 弾丸を作成
+        function createBullet(x, y) {
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = x + 'px';
+            bullet.style.top = y + 'px';
+            gameContainer.appendChild(bullet);
+            
+            gameState.bullets.push({
+                element: bullet,
+                x: x,
+                y: y
+            });
+        }
+
+        // 敵を作成
+        function createEnemy() {
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            const x = Math.random() * 370;
+            enemy.style.left = x + 'px';
+            enemy.style.top = '-30px';
+            gameContainer.appendChild(enemy);
+            
+            gameState.enemies.push({
+                element: enemy,
+                x: x,
+                y: -30,
+                speed: 1 + Math.random() * 2
+            });
+        }
+
+        // パーティクル効果
+        function createParticles(x, y, count = 5) {
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                gameContainer.appendChild(particle);
+                
+                const dx = (Math.random() - 0.5) * 10;
+                const dy = (Math.random() - 0.5) * 10;
+                
+                gameState.particles.push({
+                    element: particle,
+                    x: x,
+                    y: y,
+                    dx: dx,
+                    dy: dy,
+                    life: 30
+                });
+            }
+        }
+
+        // 衝突判定
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // ゲームループ
+        function gameLoop() {
+            if (!gameState.gameRunning) return;
+
+            // プレイヤーの移動
+            if (gameState.keys['ArrowLeft'] && gameState.playerX > 0) {
+                gameState.playerX -= 5;
+            }
+            if (gameState.keys['ArrowRight'] && gameState.playerX < 360) {
+                gameState.playerX += 5;
+            }
+            
+            // 射撃
+            if (gameState.keys['Space']) {
+                if (Math.random() < 0.3) {
+                    createBullet(gameState.playerX + 18, 550);
+                }
+            }
+
+            player.style.left = gameState.playerX + 'px';
+
+            // 弾丸の更新
+            gameState.bullets.forEach((bullet, index) => {
+                bullet.y -= 8;
+                bullet.element.style.top = bullet.y + 'px';
+                
+                if (bullet.y < -20) {
+                    bullet.element.remove();
+                    gameState.bullets.splice(index, 1);
+                }
+            });
+
+            // 敵の更新
+            gameState.enemies.forEach((enemy, index) => {
+                enemy.y += enemy.speed;
+                enemy.element.style.top = enemy.y + 'px';
+                
+                if (enemy.y > 620) {
+                    enemy.element.remove();
+                    gameState.enemies.splice(index, 1);
+                    return;
+                }
+
+                // プレイヤーとの衝突
+                const playerRect = {
+                    x: gameState.playerX,
+                    y: 550,
+                    width: 40,
+                    height: 40
+                };
+                const enemyRect = {
+                    x: enemy.x,
+                    y: enemy.y,
+                    width: 30,
+                    height: 30
+                };
+
+                if (checkCollision(playerRect, enemyRect)) {
+                    gameState.playerHealth -= 20;
+                    createParticles(enemy.x + 15, enemy.y + 15);
+                    enemy.element.remove();
+                    gameState.enemies.splice(index, 1);
+                    
+                    if (gameState.playerHealth <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+
+            // 弾丸と敵の衝突
+            gameState.bullets.forEach((bullet, bulletIndex) => {
+                gameState.enemies.forEach((enemy, enemyIndex) => {
+                    const bulletRect = {
+                        x: bullet.x,
+                        y: bullet.y,
+                        width: 4,
+                        height: 12
+                    };
+                    const enemyRect = {
+                        x: enemy.x,
+                        y: enemy.y,
+                        width: 30,
+                        height: 30
+                    };
+
+                    if (checkCollision(bulletRect, enemyRect)) {
+                        createParticles(enemy.x + 15, enemy.y + 15);
+                        bullet.element.remove();
+                        enemy.element.remove();
+                        gameState.bullets.splice(bulletIndex, 1);
+                        gameState.enemies.splice(enemyIndex, 1);
+                        gameState.score += 100;
+                        
+                        // スタミナを増加
+                        if (gameState.stamina < gameState.maxStamina) {
+                            gameState.stamina += 20;
+                            if (gameState.stamina > gameState.maxStamina) {
+                                gameState.stamina = gameState.maxStamina;
+                            }
+                        }
+                    }
+                });
+            });
+
+            // パーティクルの更新
+            gameState.particles.forEach((particle, index) => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life--;
+                particle.element.style.left = particle.x + 'px';
+                particle.element.style.top = particle.y + 'px';
+                particle.element.style.opacity = particle.life / 30;
+                
+                if (particle.life <= 0) {
+                    particle.element.remove();
+                    gameState.particles.splice(index, 1);
+                }
+            });
+
+            // スペシャル攻撃の処理
+            if (gameState.keys['Enter'] && gameState.stamina >= gameState.maxStamina && !gameState.specialAttackActive) {
+                activateSpecialAttack();
+            }
+
+            // スペシャル攻撃の継続時間管理
+            if (gameState.specialAttackActive) {
+                gameState.specialAttackDuration--;
+                if (gameState.specialAttackDuration <= 0) {
+                    gameState.specialAttackActive = false;
+                }
+            }
+
+            // UIの更新
+            scoreElement.textContent = gameState.score;
+            healthFill.style.width = gameState.playerHealth + '%';
+            staminaFill.style.width = (gameState.stamina / gameState.maxStamina) * 100 + '%';
+            
+            // スタミナゲージがフルの時のエフェクト
+            if (gameState.stamina >= gameState.maxStamina) {
+                staminaFill.classList.add('stamina-ready');
+            } else {
+                staminaFill.classList.remove('stamina-ready');
+            }
+
+            // 敵とエフェクトの生成
+            if (Math.random() < 0.02) {
+                createEnemy();
+            }
+            createStars();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameState.gameRunning = false;
+            finalScoreElement.textContent = gameState.score;
+            gameOverElement.style.display = 'block';
+        }
+
+        // スペシャル攻撃を発動
+        function activateSpecialAttack() {
+            gameState.specialAttackActive = true;
+            gameState.specialAttackDuration = 30; // 0.5秒間
+            gameState.stamina = 0;
+            
+            // スクリーンフラッシュエフェクト
+            const flash = document.createElement('div');
+            flash.className = 'screen-flash';
+            gameContainer.appendChild(flash);
+            
+            // スペシャルウェーブエフェクト
+            const wave = document.createElement('div');
+            wave.className = 'special-wave';
+            wave.style.left = gameState.playerX + 20 + 'px';
+            wave.style.top = '550px';
+            gameContainer.appendChild(wave);
+            
+            // 全ての敵を破壊
+            gameState.enemies.forEach(enemy => {
+                createParticles(enemy.x + 15, enemy.y + 15, 8);
+                enemy.element.remove();
+                gameState.score += 200; // スペシャル攻撃はボーナススコア
+            });
+            gameState.enemies = [];
+            
+            // エフェクトを削除
+            setTimeout(() => {
+                if (flash.parentNode) flash.parentNode.removeChild(flash);
+                if (wave.parentNode) wave.parentNode.removeChild(wave);
+            }, 1000);
+        }
+
+        function restartGame() {
+            // ゲーム状態をリセット
+            gameState = {
+                playerX: 180,
+                playerHealth: 100,
+                score: 0,
+                stamina: 0,
+                maxStamina: 100,
+                bullets: [],
+                enemies: [],
+                particles: [],
+                gameRunning: true,
+                keys: {},
+                specialAttackActive: false,
+                specialAttackDuration: 0
+            };
+
+            // DOM要素をクリア
+            document.querySelectorAll('.bullet, .enemy, .particle, .star, .screen-flash, .special-wave').forEach(el => el.remove());
+            
+            gameOverElement.style.display = 'none';
+            gameLoop();
+        }
+
+        // ゲーム開始
+        gameLoop();
+    </script>
+</body>
+</html>
